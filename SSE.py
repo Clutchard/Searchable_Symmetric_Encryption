@@ -1,4 +1,5 @@
-import itertools #used for permutations
+import itertools 
+from itertools import permutations, combinations #used for permutations
 from cryptography.fernet import Fernet #used for the symmetric key generation
 from collections import Counter #used to count most common word
 from collections import defaultdict # used to make the the distinct word list
@@ -8,6 +9,7 @@ import os
 from cryptography.hazmat.backends import default_backend #used in making key from password
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+import random #to select random key
 
 
 
@@ -37,16 +39,16 @@ def main():
 
 			key_s, key_y, key_z = keygen(password)
 			#uncomment out to see the three keys
-			#print(key_s)
-			#print(key_y)
-			#print(key_z)
+			print(key_s)
+			print(key_y)
+			print(key_z)
 
 			word_dict = intialization()
 			#uncomment out to see the word_dict list
 			#for i in word_dict.items():
-				#print(i)
+			#	print(i)
 
-			build_array()
+			arr_of_linked_lists = build_array(word_dict)
 
 			break
 
@@ -137,11 +139,66 @@ def keygen(u_password):
 
 ############################################################################################
 
-def build_array():
+def build_array(word_dict):
 	print("Build array Part")
+	#initialize empty list A. A will be the array of linked lists, or in this case list of linked lists
+	#can append each linked list after it is created below
+	A = []
+
+	#gets a list of all possible bit strings of length 16
+	#****WHAT IS LENGTH OF KEY WE WANT?
+	#outside of loop to avoid extra computation
+	all_possible_keys = ["".join(seq) for seq in itertools.product("01", repeat=16)]
+
+	#for each word in set of distinct words, word_dict in this case	
+	for i, doc_list in word_dict.items():
+
+		#create a linked list - L for this specific item
+		LList = dllist()
+		
+		#generate K(i,0), a bit string of length l, the length of our key
+		#do this randomly. this will be the first K.
+		#selects a random key from our possible keys for this keyword
+		random_value = random.randint(1,len(all_possible_keys))
+		K_i_0 = all_possible_keys[random_value]
+		
+		# for 1 <= j <= |D(wi)|:
+		# for each document which has distinct word wi....iterate through doc_list
+		K_i_jminus1 = K_i_0 #initialize the previous key to the first one created
+		for j, doc in enumerate(doc_list):
+			
+			#again generate key K(i,j) from random bit string of lenght l
+			random_value = random.randint(1,len(all_possible_keys))
+			K_i_j = all_possible_keys[random_value]
+			
+
+			#N(i,j) = (id(D(i,j) || K(i,j) || v(s)(ctr+1)), where id(D(i,j) is the jth identifier in D(wi)
+			# first part is document id, second is the key used to encrypt the next node, 
+				#and v(s) is the address of the next node...
+			#are te document identifiers just their names?
+			#N = doc || K_i_j || ??????????
+			#    hex(id(x)))  <---- returns the hex address of variable x in python
+
+			#encrypt N with Ki,j-1, ie the previous key
+			#something like the folliwng maybe?
+			#result = encrypt(N, K_i_jminus1)
+	
+			#store the encrypted N in the array here?
+			#A[v(ctr)] = result
+
+			#update counter
+			#ctr = ctr + 1
 
 
 
+			K_i_jminus1 = K_i_j #update and save K at i,j-1
+			
+
+
+			
+		#A.append(LList)?
+
+	return A
 
 if __name__ == '__main__':
 	main()
