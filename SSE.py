@@ -144,55 +144,56 @@ def build_array(word_dict):
 	#initialize empty list A. A will be the array of linked lists, or in this case list of linked lists
 	#can append each linked list after it is created below
 	A = []
-
-	#gets a list of all possible bit strings of length 16
-	#****WHAT IS LENGTH OF KEY WE WANT?
-	#outside of loop to avoid extra computation
-	all_possible_keys = ["".join(seq) for seq in itertools.product("01", repeat=16)]
+	ctr = 1
 
 	#for each word in set of distinct words, word_dict in this case	
 	for i, doc_list in word_dict.items():
 
 		#create a linked list - L for this specific item
 		LList = dllist()
-		
-		#generate K(i,0), a bit string of length l, the length of our key
-		#do this randomly. this will be the first K.
-		#selects a random key from our possible keys for this keyword
-		random_value = random.randint(1,len(all_possible_keys))
-		K_i_0 = all_possible_keys[random_value]
+
+		K_i_0 = Fernet.generate_key()
 		
 		# for 1 <= j <= |D(wi)|:
 		# for each document which has distinct word wi....iterate through doc_list
 		K_i_jminus1 = K_i_0 #initialize the previous key to the first one created
+		
 		for j, doc in enumerate(doc_list):
 			
-			#again generate key K(i,j) from random bit string of lenght l
-			random_value = random.randint(1,len(all_possible_keys))
-			K_i_j = all_possible_keys[random_value]
+			#again generate key K(i,j) lenght l?
+			K_i_j = Fernet.generate_key()
+
+			print("current key: " + str(K_i_j))
+			print("previous key: " + str(K_i_jminus1))
 			
 
 			#N(i,j) = (id(D(i,j) || K(i,j) || v(s)(ctr+1)), where id(D(i,j) is the jth identifier in D(wi)
 			# first part is document id, second is the key used to encrypt the next node, 
 				#and v(s) is the address of the next node...
 			#are te document identifiers just their names?
-			#N = doc || K_i_j || ??????????
-			#    hex(id(x)))  <---- returns the hex address of variable x in python
+			#N = K_i_j
+			N = b'daniel'
+
+			#N = doc + K_i_j + address of next node. 
+			print("N: " + str(N))
 
 			#encrypt N with Ki,j-1, ie the previous key
 			#something like the folliwng maybe?
-			#result = encrypt(N, K_i_jminus1)
-	
+
+			N = Fernet(K_i_jminus1).encrypt(N)
+			print("Encrypted n: " + str(N))
+			ptext = Fernet(K_i_jminus1).decrypt(N)
+			print("Decrypted n: " + str(ptext))
+
+			print("K i,j-1" + str(K_i_jminus1))
+			print("K_i_j" + str(K_i_j))
+			K_i_jminus1 = K_i_j #update and save K at i,j-1
+
 			#store the encrypted N in the array here?
 			#A[v(ctr)] = result
 
 			#update counter
-			#ctr = ctr + 1
-
-
-
-			K_i_jminus1 = K_i_j #update and save K at i,j-1
-			
+			ctr = ctr + 1
 
 
 			
