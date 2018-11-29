@@ -11,6 +11,8 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 import random #to select random key
 import sys
+import re
+import bitarray #for lookup table
 
 
 
@@ -40,21 +42,31 @@ def main():
 
 			key_s, key_y, key_z = keygen(password)
 			#uncomment out to see the three keys
-			print(key_s)
-			print(key_y)
-			print(key_z)
+			#print(key_s)
+			#print(key_y)
+			#print(key_z)
 
 			word_dict = intialization()
 			#uncomment out to see the word_dict list
-			#for i in word_dict.items():
-			#	print(i)
+			for i in word_dict.items():
+				print(i)
 
 			arr_of_linked_lists, keyword_key_pair = build_array(word_dict, key_s, key_y, key_z)
 
-			for i in arr_of_linked_lists:
-				print(i)
+			#for i in arr_of_linked_lists:
+			#	print(i)
 
-			look_up_table(keyword_key_pair, key_s, key_y, key_z)
+			T = look_up_table(keyword_key_pair, key_s, key_y, key_z)
+			#for i in T:
+			#	print(T)
+
+			keyword = input("Please enter the keyword to search: ")
+			
+			trapdoor = Trapdoor(keyword, key_z, key_y)		
+
+			list_of_docs = Search(T, arr_of_linked_lists, trapdoor)
+
+			print(list_of_docs)
 
 			break
 
@@ -187,7 +199,10 @@ def build_array(word_dict, key_s, key_y, key_z):
 			#are te document identifiers just their names?
 			#N = K_i_j
 			curr_addr = psuedo_random(key_s, ctr)
-			next_addr = psuedo_random(key_s, ctr+1)
+			if j == len(doc_list) - 1:
+				next_addr = None
+			else:
+				next_addr = psuedo_random(key_s, ctr+1)
 			N = doc + "\n" + str(K_i_j) + "\n" + str(next_addr)
 			#newline is a delimeter to seperate three components of the encrypted string
 			#N = doc + K_i_j + address of next node. 
@@ -221,11 +236,13 @@ def build_array(word_dict, key_s, key_y, key_z):
 			ctr = ctr + 1
 
 	# Filling in the rest of the array with random encrypted data
-	for i in A:
-		if (i ==  0):
+	for ind,val in enumerate(A):
+		if (val == 0):
 			x = random.randrange(0, 10000)
 			x = str(x)
 			x = Fernet(key_s).encrypt(str.encode(x))
+			A[ind] = x
+
 
 	return A, keyword_key_pair
 
@@ -236,17 +253,78 @@ def look_up_table(keyword_key_pair,key_s, key_y, key_z):
 		keyword = i[0]
 		key = i[1]
 		ctr = i[2]
-		random.seed(keyword + str(key))
+
+		# pseudorandom permutation on z
+		random.seed(keyword + str(key_z))
 		index = random.randrange(0, 1000)
+
+		#computes value <addr(A(Ni,1)||K_i_0)>
 		addr = psuedo_random(key_s,ctr)
-		value = str(addr) + "\n" str(key)
+		value = str(addr) + "\n" + str(key)
+
+		#computed 'f_y(w_i)'
 		random.seed(keyword + str(key_y))
 		f_y = random.randrange(0,1000)
-		#value = value xor f_y
-		T[index] = value
-		#set all elements equal to zero as some random key value
-		
 
+		#XOR value with f_y
+		#cat_string = ''	#empty string to begin
+		#for m in value:
+			#concatenate ascii value of each character in value
+		#	cat_string = cat_string + str(ord(m))
+		
+		ba = bitarray.bitarray()
+		ba.frombytes(value.encode('utf-8'))
+		print(ba)
+
+		ba2 = bitarray.bitarray()
+		ba2.frombytes(str(f_y).encode('utf-8'))
+		print(ba2)
+		#value = cat_string ^ f_y
+		value = ba ^ ba2
+
+		print(value)
+		
+	
+		T[index] = value
+	
+
+	#set all elements equal to zero as some random key value
+	for ind,val in enumerate(T):
+		if (val == 0):
+			x = random.randrange(0, 10000)
+			x = str(x)
+			x = Fernet(key_s).encrypt(str.encode(x))
+			T[ind] = x
+	return T
+
+def Trapdoor(keyword, key_z, key_y):
+	random.seed(keyword + str(key_z))
+	index = random.randrange(0, 1000)
+	
+	#the pseudo-random function 'f_y(w)'
+	random.seed(keyword + str(key_y))
+	f_y = random.randrange(0,1000)
+
+	return (index, f_y)
+
+def Search(T, A, trapdoor):
+
+	value = T[trapdoor[0]]
+	print(value)
+
+	node = int(value) ^ trapdoor[1]
+	print(node)
+
+	#for i in node:
+	#	if i 
+	
+	addr_node = re.split(r"\n", str(node))
+
+	print(addr_node)
+
+
+
+	
 
 
 
