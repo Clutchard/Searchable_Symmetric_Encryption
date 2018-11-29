@@ -54,7 +54,8 @@ def main():
 			arr_of_linked_lists, keyword_key_pair = build_array(word_dict, key_s, key_y, key_z)
 
 			#for i in arr_of_linked_lists:
-			#	print(i)
+				#print(i)
+			#You can tell the difference between the indexes by length
 
 			T = look_up_table(keyword_key_pair, key_s, key_y, key_z)
 			#for i in T:
@@ -272,17 +273,22 @@ def look_up_table(keyword_key_pair,key_s, key_y, key_z):
 			#concatenate ascii value of each character in value
 		#	cat_string = cat_string + str(ord(m))
 		
-		ba = bitarray.bitarray()
+		ba = bitarray.bitarray(1000)
+		ba.setall(False)
 		ba.frombytes(value.encode('utf-8'))
-		print(ba)
+		#print(ba)
 
-		ba2 = bitarray.bitarray()
+		ba2 = bitarray.bitarray(1000)
+		ba2.setall(False)
 		ba2.frombytes(str(f_y).encode('utf-8'))
-		print(ba2)
+		#print(ba2)
 		#value = cat_string ^ f_y
-		value = ba ^ ba2
+		value = bitarray.bitarray(1000)
+		value.setall(False)
+		value.frombytes(bytes(x ^ y for x, y in zip(ba, ba2)))
+		
 
-		print(value)
+		#print(value)
 		
 	
 		T[index] = value
@@ -311,8 +317,9 @@ def Search(T, A, trapdoor):
 
 	value = T[trapdoor[0]]
 	print(value)
+	print(trapdoor[1])
 
-	node = int(value) ^ trapdoor[1]
+	node = value ^ trapdoor[1]
 	print(node)
 
 	#for i in node:
