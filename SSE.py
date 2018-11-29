@@ -10,6 +10,7 @@ from cryptography.hazmat.backends import default_backend #used in making key fro
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 import random #to select random key
+import sys
 
 
 
@@ -48,7 +49,12 @@ def main():
 			#for i in word_dict.items():
 			#	print(i)
 
-			arr_of_linked_lists = build_array(word_dict)
+			arr_of_linked_lists, keyword_key_pair = build_array(word_dict, key_s, key_y, key_z)
+
+			for i in arr_of_linked_lists:
+				print(i)
+
+			look_up_table(keyword_key_pair, key_s, key_y, key_z)
 
 			break
 
@@ -138,21 +144,29 @@ def keygen(u_password):
 
 
 ############################################################################################
+def psuedo_random(key_s, ctr):
+	decimal_key = int.from_bytes(key_s, byteorder=sys.byteorder)
+	combined = decimal_key + ctr
+	random.seed(combined)
+	index = random.randrange(0, 10000)
+	return index
 
-def build_array(word_dict):
+
+############################################################################################
+def build_array(word_dict, key_s, key_y, key_z):
 	print("Build array Part")
 	#initialize empty list A. A will be the array of linked lists, or in this case list of linked lists
 	#can append each linked list after it is created below
-	A = []
+	A = [0] * 10000
 	ctr = 1
+	keyword_key_pair = []
+
 
 	#for each word in set of distinct words, word_dict in this case	
 	for i, doc_list in word_dict.items():
 
-		#create a linked list - L for this specific item
-		LList = dllist()
-
 		K_i_0 = Fernet.generate_key()
+		keyword_key_pair.append([i, K_i_0, ctr])
 		
 		# for 1 <= j <= |D(wi)|:
 		# for each document which has distinct word wi....iterate through doc_list
@@ -163,8 +177,8 @@ def build_array(word_dict):
 			#again generate key K(i,j) lenght l?
 			K_i_j = Fernet.generate_key()
 
-			print("current key: " + str(K_i_j))
-			print("previous key: " + str(K_i_jminus1))
+			#print("current key: " + str(K_i_j))
+			#print("previous key: " + str(K_i_jminus1))
 			
 
 			#N(i,j) = (id(D(i,j) || K(i,j) || v(s)(ctr+1)), where id(D(i,j) is the jth identifier in D(wi)
@@ -172,34 +186,69 @@ def build_array(word_dict):
 				#and v(s) is the address of the next node...
 			#are te document identifiers just their names?
 			#N = K_i_j
-			N = b'daniel'
-
+			curr_addr = psuedo_random(key_s, ctr)
+			next_addr = psuedo_random(key_s, ctr+1)
+			N = doc + "\n" + str(K_i_j) + "\n" + str(next_addr)
+			#newline is a delimeter to seperate three components of the encrypted string
 			#N = doc + K_i_j + address of next node. 
-			print("N: " + str(N))
 
 			#encrypt N with Ki,j-1, ie the previous key
 			#something like the folliwng maybe?
 
-			N = Fernet(K_i_jminus1).encrypt(N)
-			print("Encrypted n: " + str(N))
-			ptext = Fernet(K_i_jminus1).decrypt(N)
-			print("Decrypted n: " + str(ptext))
+			N = Fernet(K_i_jminus1).encrypt(str.encode(N))
 
-			print("K i,j-1" + str(K_i_jminus1))
-			print("K_i_j" + str(K_i_j))
-			K_i_jminus1 = K_i_j #update and save K at i,j-1
+			#print("Encrypted n: " + str(N))
+			#ptext = Fernet(K_i_jminus1).decrypt(N)
+			
+			#print("Decrypted n: " + str(ptext))
+
+			#print("K i,j-1" + str(K_i_jminus1))
+			#print("K_i_j" + str(K_i_j))
+			#K_i_jminus1 = K_i_j #update and save K at i,j-1
 
 			#store the encrypted N in the array here?
 			#A[v(ctr)] = result
+			A[curr_addr] = N
+			print(A[curr_addr])
+
+			#How to decrypt the node into the three componets 
+			#y = A[curr_addr]
+			#new_n = Fernet(K_i_jminus1).decrypt(y)
+			#z = new_n.decode()
+			#print(z)
 
 			#update counter
 			ctr = ctr + 1
 
+	# Filling in the rest of the array with random encrypted data
+	for i in A:
+		if (i ==  0):
+			x = random.randrange(0, 10000)
+			x = str(x)
+			x = Fernet(key_s).encrypt(str.encode(x))
 
-			
-		#A.append(LList)?
+	return A, keyword_key_pair
 
-	return A
+############################################################################################
+def look_up_table(keyword_key_pair,key_s, key_y, key_z):
+	T = [0] * 1000
+	for i in keyword_key_pair:
+		keyword = i[0]
+		key = i[1]
+		ctr = i[2]
+		random.seed(keyword + str(key))
+		index = random.randrange(0, 1000)
+		addr = psuedo_random(key_s,ctr)
+		value = str(addr) + "\n" str(key)
+		random.seed(keyword + str(key_y))
+		f_y = random.randrange(0,1000)
+		#value = value xor f_y
+		T[index] = value
+		#set all elements equal to zero as some random key value
+		
+
+
+
 
 if __name__ == '__main__':
 	main()
