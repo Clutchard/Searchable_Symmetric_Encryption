@@ -48,8 +48,8 @@ def main():
 
 			word_dict = intialization()
 			#uncomment out to see the word_dict list
-			for i in word_dict.items():
-				print(i)
+			#for i in word_dict.items():
+			#	print(i)
 
 			arr_of_linked_lists, keyword_key_pair = build_array(word_dict, key_s, key_y, key_z)
 
@@ -67,7 +67,7 @@ def main():
 
 			list_of_docs = Search(T, arr_of_linked_lists, trapdoor)
 
-			print(list_of_docs)
+			#print(list_of_docs)
 
 			break
 
@@ -167,7 +167,7 @@ def psuedo_random(key_s, ctr):
 
 ############################################################################################
 def build_array(word_dict, key_s, key_y, key_z):
-	print("Build array Part")
+	#print("Build array Part")
 	#initialize empty list A. A will be the array of linked lists, or in this case list of linked lists
 	#can append each linked list after it is created below
 	A = [0] * 10000
@@ -190,6 +190,8 @@ def build_array(word_dict, key_s, key_y, key_z):
 			#again generate key K(i,j) lenght l?
 			K_i_j = Fernet.generate_key()
 
+		
+
 			#print("current key: " + str(K_i_j))
 			#print("previous key: " + str(K_i_jminus1))
 			
@@ -204,6 +206,7 @@ def build_array(word_dict, key_s, key_y, key_z):
 				next_addr = None
 			else:
 				next_addr = psuedo_random(key_s, ctr+1)
+			
 			N = doc + "\n" + str(K_i_j) + "\n" + str(next_addr)
 			#newline is a delimeter to seperate three components of the encrypted string
 			#N = doc + K_i_j + address of next node. 
@@ -220,12 +223,12 @@ def build_array(word_dict, key_s, key_y, key_z):
 
 			#print("K i,j-1" + str(K_i_jminus1))
 			#print("K_i_j" + str(K_i_j))
-			#K_i_jminus1 = K_i_j #update and save K at i,j-1
+			K_i_jminus1 = K_i_j #update and save K at i,j-1
 
 			#store the encrypted N in the array here?
 			#A[v(ctr)] = result
 			A[curr_addr] = N
-			print(A[curr_addr])
+			#print(A[curr_addr])
 
 			#How to decrypt the node into the three componets 
 			#y = A[curr_addr]
@@ -268,27 +271,13 @@ def look_up_table(keyword_key_pair,key_s, key_y, key_z):
 		f_y = random.randrange(0,1000)
 
 		#XOR value with f_y
-		#cat_string = ''	#empty string to begin
-		#for m in value:
+		cat_string = []	#empty string to begin
+		for m in value:
 			#concatenate ascii value of each character in value
-		#	cat_string = cat_string + str(ord(m))
-		
-		ba = bitarray.bitarray(1000)
-		ba.setall(False)
-		ba.frombytes(value.encode('utf-8'))
-		#print(ba)
+			cat_string.append(ord(m))
 
-		ba2 = bitarray.bitarray(1000)
-		ba2.setall(False)
-		ba2.frombytes(str(f_y).encode('utf-8'))
-		#print(ba2)
-		#value = cat_string ^ f_y
-		value = bitarray.bitarray(1000)
-		value.setall(False)
-		value.frombytes(bytes(x ^ y for x, y in zip(ba, ba2)))
-		
+		value = [f_y ^ x for x in cat_string]
 
-		#print(value)
 		
 	
 		T[index] = value
@@ -313,21 +302,111 @@ def Trapdoor(keyword, key_z, key_y):
 
 	return (index, f_y)
 
+
 def Search(T, A, trapdoor):
 
 	value = T[trapdoor[0]]
-	print(value)
-	print(trapdoor[1])
+	#print(value)
+	#print(trapdoor[1])
 
-	node = value ^ trapdoor[1]
-	print(node)
+	#f_y = bitarray.bitarray(1000)
+	#f_y.setall(False)
+	#f_y.frombytes(str(trapdoor[1]).encode('utf-8'))
+
+	f_y = trapdoor[1]
+
+	addr_and_key = [chr(f_y ^ x) for x in value]
+	#print(node)
+
+	
+	mystring = ''
+	for x in addr_and_key:
+		mystring = mystring + x
+
+	addr_node = re.split(r"\n", str(mystring))
+
+	if len(addr_node) == 1:
+		print("did not find anything")
+	else:
+
+		addr = addr_node[0]
+		key = addr_node[1]
+		key = key[2:-1]
+
+		node = A[int(addr)]
+
+
+		decrypted_node = Fernet(str.encode(key)).decrypt(node)
+		
+		d_n = str(decrypted_node)[2:-1]
+		split_node = re.split(r"\\n", d_n)
+		doc_id = split_node[0]
+		key = split_node[1]
+		addr = split_node[2]
+
+		print("Search Results: \n")
+		print(doc_id)
+
+		while addr != 'None':
+			
+			key = key[2:-1]
+			key = str.encode(key)
+
+			node = A[int(addr)]
+			decrypted_node = Fernet(key).decrypt(node)
+	
+	
+			d_n = str(decrypted_node)[2:-1]
+
+
+			split_node = re.split(r"\\n", d_n)
+
+	
+			doc_id = split_node[0]
+			key = split_node[1]
+			addr = split_node[2]
+			
+			print(doc_id)
+
+		
+			
+
+
+	
+
+	
+
+	#node = bitarray.bitarray(1000)
+	#node.setall(False)
+	#node.frombytes(bytes(x ^ y for x, y in zip(f_y, value)))
+	
+	#print(type(bitarray.bitarray(node).tobytes().decode('utf-8')))
+
+	#print(bitarray.bitarray(node).tobytes())
+	#print(bitarray.bitarray(node).tobytes().decode('utf-8'))
+	#print(bitarray.bitarray(node).tobytes().decode('ascii'))
+
+	#string = str(bitarray.bitarray(node).tobytes().decode('utf-8'))
+
+	#string = string.decode('utf-8')
+	#print(string)
+
+	#node = [x ^ y for x,y in zip(f_y,value)]
+
+	#print(node)
+	#print(frombits(node))
+	#print(type(bitarray.bitarray(node).tobytes().decode('utf-8')))
+
+	#print(str(bitarray.bitarray(node).tobytes().decode('utf-8')))
+	
+	#bitarray.bitarray(node).tobytes().decode('utf-8')
 
 	#for i in node:
 	#	if i 
 	
-	addr_node = re.split(r"\n", str(node))
+	#addr_node = re.split(r"\n", str(node))
 
-	print(addr_node)
+	#print(addr_node)
 
 
 
